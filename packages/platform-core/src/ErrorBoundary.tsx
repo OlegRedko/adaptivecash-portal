@@ -1,64 +1,41 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Button, Text, tokens } from '@fluentui/react-components';
 
-interface Props {
+interface ErrorBoundaryProps {
   children?: ReactNode;
   fallback?: ReactNode;
 }
 
-interface State {
-  hasError: boolean;
+interface ErrorBoundaryState {
   error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-  };
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {};
 
-  public static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI.
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // You can log the error to an error reporting service like Sentry or LogRocket here
-    console.error("Uncaught error:", error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Unhandled portal error', error, errorInfo);
   }
 
-  private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
-  };
+  private reset = () => this.setState({ error: undefined });
 
-  public render() {
-    if (this.state.hasError) {
-      // Custom fallback passed via props
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
+  render() {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
 
-      // Default fallback UI
-      return (
-        <div style={{ padding: "24px", textAlign: "center", fontFamily: "sans-serif" }}>
-          <h2>Something went wrong.</h2>
-          <p style={{ color: "#666" }}>
-            {this.state.error?.message || "An unexpected error occurred."}
-          </p>
-          <button
-            onClick={this.handleReset}
-            style={{
-              padding: "8px 16px",
-              fontSize: "14px",
-              cursor: "pointer",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-            }}
-          >
-            Try again
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
+    return (
+      <div role="alert" style={{ display: 'grid', gap: '12px', justifyItems: 'start', padding: '24px' }}>
+        <Text size={500} weight="semibold">
+          Something went wrong.
+        </Text>
+        <Text style={{ color: tokens.colorNeutralForeground3 }}>{error.message}</Text>
+        <Button onClick={this.reset}>Try again</Button>
+      </div>
+    );
   }
 }

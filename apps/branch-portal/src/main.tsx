@@ -1,25 +1,22 @@
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { FluentProvider } from '@fluentui/react-components';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { adaptiveCashLightTheme } from '@adaptivecash/design-tokens';
+import { PortalApp, type PortalConfig } from '@adaptivecash/platform-core';
+import { createDocumentsModule } from '@adaptivecash/documents-feature';
 import '@adaptivecash/design-tokens/tokens.css';
-import { RouterProvider } from '@adaptivecash/router-lite';
-import { DocumentsPage } from '@adaptivecash/documents-feature';
-import { ErrorBoundary } from '@adaptivecash/platform-core';
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30000 } } });
+const config: PortalConfig = {
+  portalName: 'Branch Portal',
+  tenantId: 'branch-demo',
+  user: {
+    displayName: 'Olena Kovalenko',
+    permissions: ['Documents.View', 'Documents.Sign', 'documents.viewAmount'],
+  },
+};
 
-createRoot(document.getElementById('root')!)
-  .render(
-    <>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <FluentProvider theme={adaptiveCashLightTheme}>
-            <RouterProvider>
-              <DocumentsPage />
-            </RouterProvider>
-          </FluentProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
-    </>,
-  );
+const modules = [createDocumentsModule()];
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <PortalApp config={config} modules={modules} />
+  </StrictMode>,
+);

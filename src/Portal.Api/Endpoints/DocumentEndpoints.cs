@@ -21,6 +21,13 @@ public static class DocumentEndpoints
                     .ToListAsync(ct);
                 return items.OrderByDescending(x => x.UpdatedAt).ToList();
             });
+        app.MapGet("/api/documents/statuses",
+            async (PortalDbContext db, TenantContext tenant, CancellationToken ct) =>
+            {
+                var t = tenant.RequireTenant();
+                return await db.Documents.AsNoTracking().Where(x => x.TenantId == t)
+                    .Select(x => x.Status).Distinct().OrderBy(x => x).ToListAsync(ct);
+            });
         app.MapGet("/api/documents/{id}",
             async (string id, PortalDbContext db, TenantContext tenant, CancellationToken ct) =>
             {

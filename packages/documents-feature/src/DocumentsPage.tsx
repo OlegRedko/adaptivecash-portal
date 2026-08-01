@@ -1,76 +1,106 @@
-import { useEffect, useState } from 'react';
-import { makeStyles, Card } from '@fluentui/react-components';
-import DocumentsPageHeader from './DocumentsPageHeader';
-import DocumentsTable from './DocumentsTable';
+import {
+  Button,
+  Card,
+  MessageBar,
+  MessageBarActions,
+  MessageBarBody,
+  Spinner,
+  makeStyles,
+} from '@fluentui/react-components';
+import { navigate, useLocation, useRoute } from '@adaptivecash/router-lite';
 import { DocumentsFilters } from './DocumentsFilters';
+import { DocumentsTable } from './DocumentsTable';
+import { DocumentDetails } from './DocumentDetails';
+import { useDocumentFilters } from './useDocumentFilters';
+import { useDebouncedValue } from './useDebouncedValue';
+import { useDocumentStatusesQuery, useDocumentsQuery } from './queries';
 
 export const DocumentsPage = () => {
-    const styles = useStyles();
-    const [loading, setLoading] = useState<boolean>(false);
+  const styles = useStyles();
+  const {
+    filters: { search, status },
+    setSearch,
+    setStatus,
+  } = useDocumentFilters();
 
-    const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const documents = useDocumentsQuery(debouncedSearch, status);
+  const statuses = useDocumentStatusesQuery();
 
-    useEffect(() => {
-        fetchDocuments();
-    }, []);
+  const { search: params } = useLocation();
+  const routeParams = useRoute('/documents/:documentId');
+  const selectedId = routeParams?.documentId;
+  const selected = documents.data?.find((item) => item.id === selectedId);
 
-    const fetchDocuments = async () => {
-        setLoading(true);
+  const query = params.toString();
+  const suffix = query ? `?${query}` : '';
 
-        if (!loading){
-            const response = await fetch('/api/documents', {
-                method: 'GET',
-                headers: {
-                    'X-Tenant-Id': 'branch-demo',
+  const openDocument = (documentId: string) => {
+    navigate(`/documents/${encodeURIComponent(documentId)}${suffix}`);
+  };
 
-                },
-            });
+  const closeDocument = () => {
+    navigate(`/documents${suffix}`);
+  };
 
-            const data: DocumentItem[] = await response.json();
+  return (
+    <div className={styles.page}>
+      <Card className={styles.card}>
+        <DocumentsFilters
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          statuses={statuses.data ?? []}
+          onStatusChange={setStatus}
+        />
 
-            setDocuments(data);
-        }
-        setLoading(false);
-    }
+        <div aria-live="polite" aria-busy={documents.isPending}>
+          {documents.isPending && <Spinner label="Loading documents" />}
 
-    return (
-      <>
-        <div className={styles.page}>
-            <DocumentsPageHeader />
-            <div className={styles.mainContainer}>
-                <div className={styles.sidebar}>
-                    Sidebar
-                </div>
-                <main className={styles.body}>
-                    <Card>
-                        <DocumentsFilters />
+          {documents.isError && (
+            <MessageBar intent="error">
+              <MessageBarBody>
+                {documents.error instanceof Error
+                  ? documents.error.message
+                  : 'The documents could not be loaded.'}
+              </MessageBarBody>
+              <MessageBarActions>
+                <Button onClick={() => documents.refetch()}>Retry</Button>
+              </MessageBarActions>
+            </MessageBar>
+          )}
 
-                        <DocumentsTable
-                          documents={documents}
-                          onRowClick={() => {}} />
-                    </Card>
-                </main>
-            </div>
+          {documents.isSuccess && (
+            <DocumentsTable
+              documents={documents.data}
+              isFetching={documents.isFetching}
+              dataUpdatedAt={documents.dataUpdatedAt}
+              onRefresh={() => documents.refetch()}
+              onOpen={openDocument}
+            />
+          )}
         </div>
-      </>
-    )
-}
+      </Card>
+
+      <DocumentDetails
+        document={selected}
+        open={Boolean(selectedId)}
+        onClose={closeDocument}
+      />
+    </div>
+  );
+};
 
 const useStyles = makeStyles({
-    page: {
-        display: 'flex',
-        flexDirection: 'column',
-    },
-        sidebar: {
-        width: '150px',
-        padding: '15px'
-    },
-    mainContainer: {
-        display: 'flex',
-    },
-    body: {
-        background: '#F3F3F3',
-        flex: '1',
-        padding: '20px',
-    },
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '5px',
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    borderRadius: '8px',
+  },
 });

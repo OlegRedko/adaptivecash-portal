@@ -1,40 +1,45 @@
-import { makeStyles, Input, Dropdown, Option, useId, Button } from '@fluentui/react-components';
-import { SearchRegular, ArrowClockwiseRegular } from "@fluentui/react-icons";
+import { makeStyles, Input, Dropdown, Option, useId } from '@fluentui/react-components';
+import { SearchRegular } from "@fluentui/react-icons";
 
-export const DocumentsFilters = () => {
+const ALL_STATUSES = 'All statuses';
+
+type Props = {
+  search: string;
+  onSearchChange: (search: string) => void;
+  status: string;
+  statuses: string[];
+  onStatusChange: (status: string) => void;
+}
+
+export const DocumentsFilters = ({ search, onSearchChange, status, statuses, onStatusChange }: Props) => {
   const styles = useStyles();
-  const dropdownId = useId("dropdown-default");
+  const dropdownId = useId("dropdown-status");
 
-  const options = [
-    "Cat",
-    "Caterpillar",
-    "Corgi",
-    "Chupacabra",
-    "Dog",
-    "Ferret",
-    "Fish",
-    "Fox",
-    "Hamster",
-    "Snake",
-  ];
   return (
     <div className={styles.container}>
       <Input
+        className={styles.search}
+        value={search}
+        onChange={(_, data) => onSearchChange(data.value)}
         contentBefore={<SearchRegular />}
-        placeholder="Documents"
+        placeholder="Search documents"
       />
 
-      <Dropdown id={dropdownId} placeholder="Select an animal">
-        {options.map((option) => (
-          <Option key={option} disabled={option === "Ferret"}>
+      <Dropdown
+        id={dropdownId}
+        className={styles.status}
+        placeholder="Select a status"
+        value={status || ALL_STATUSES}
+        selectedOptions={[status]}
+        onOptionSelect={(_, data) => onStatusChange(data.optionValue ?? '')}
+      >
+        <Option value="">{ALL_STATUSES}</Option>
+        {statuses.map((option) => (
+          <Option key={option} value={option}>
             {option}
           </Option>
         ))}
       </Dropdown>
-
-      <Button className={styles.refreshButton}>
-        <ArrowClockwiseRegular />
-      </Button>
     </div>
   )
 }
@@ -42,8 +47,12 @@ export const DocumentsFilters = () => {
 const useStyles = makeStyles({
   container: {
     display: "flex",
+    gap: "8px",
   },
-  refreshButton: {
-    flexShrink: 'initial'
-  }
+  search: {
+    flexGrow: 1,
+  },
+  status: {
+    minWidth: "180px",
+  },
 })

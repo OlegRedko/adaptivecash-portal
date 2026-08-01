@@ -1,99 +1,158 @@
 import {
+  Badge,
+  Button,
+  Spinner,
+  Table,
   TableBody,
   TableCell,
-  TableRow,
-  Table,
   TableHeader,
   TableHeaderCell,
+  TableRow,
   Text,
-  makeStyles
+  makeStyles,
+  tokens,
 } from '@fluentui/react-components';
-import { useMemo } from 'react';
-
-type TableRowData = {
-  id: string,
-  title: string,
-  status: string,
-  signer: string,
-  createdAt: Date,
-  updatedAt: Date,
-}
+import { ArrowClockwiseRegular } from '@fluentui/react-icons';
+import { usePermissions } from '@adaptivecash/platform-core';
+import type { DocumentSummary } from '@adaptivecash/api-client';
+import { DOCUMENTS_VIEW_AMOUNT } from './permissions';
 
 type Props = {
-  documents: DocumentItem[];
-  onRowClick: (id: string) => void;
-}
+  documents: DocumentSummary[];
+  isFetching: boolean;
+  dataUpdatedAt: number;
+  onRefresh: () => void;
+  onOpen: (documentId: string) => void;
+};
 
-const DocumentsTable = ({ documents, onRowClick }: Props) => {
+const amountFormatter = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'EUR',
+});
+
+export const DocumentsTable = ({
+  documents,
+  isFetching,
+  dataUpdatedAt,
+  onRefresh,
+  onOpen,
+}: Props) => {
   const styles = useStyles();
-
-  const tableRows = useMemo((): TableRowData[] => {
-    return documents.map((doc: DocumentItem) => {
-      return {
-        id: doc.id,
-        title: doc.title,
-        status: doc.status,
-        signer: doc.signer,
-        createdAt: new Date(doc.createdAt),
-        updatedAt: new Date(doc.updatedAt),
-      }
-    })
-  }, [documents]);
-
-  const columns = [
-    { columnKey: 'title', label: 'Number' },
-    { columnKey: 'status', label: 'Status' },
-    { columnKey: 'signer', label: 'Customer' },
-    { columnKey: 'createdAt', label: 'Created' },
-  ];
+  const permissions = usePermissions();
+  const canViewAmount = permissions.has(DOCUMENTS_VIEW_AMOUNT);
 
   return (
     <div>
-      <Table arial-label="Default table" style={{ minWidth: '510px' }}>
-        <TableHeader>
-          <TableRow>
-            {columns.map((column) => (
-              <TableHeaderCell key={column.columnKey}>
-                {column.label}
-              </TableHeaderCell>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tableRows.map((item: TableRowData) => (
-            <TableRow key={item.id} className={styles.row} onClick={() => onRowClick(item.id)}>
-              <TableCell>
-                <Text>
-                  {item.title}
-                </Text>
-              </TableCell>
-              <TableCell>
-                <Text>
-                  {item.status}
-                </Text>
-              </TableCell>
-              <TableCell>
-                <Text>
-                  {item.signer}
-                </Text>
-              </TableCell>
-              <TableCell>
-                <Text>
-                  {item.createdAt.toLocaleDateString()}
-                </Text>
-              </TableCell>
+      <div className={styles.scroll}>
+        <Table aria-label="Documents" className={styles.table}>
+          <TableHeader>
+            <TableRow>
+              <TableHeaderCell>Number</TableHeaderCell>
+              <TableHeaderCell>Type</TableHeaderCell>
+              <TableHeaderCell>Created</TableHeaderCell>
+              <TableHeaderCell>Customer</TableHeaderCell>
+              {canViewAmount && <TableHeaderCell>Amount</TableHeaderCell>}
+              <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell>Actions</TableHeaderCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {documents.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <Text weight="semibold">{item.id}</Text>
+                </TableCell>
+                <TableCell>
+                  <Text>{item.title}</Text>
+                </TableCell>
+                <TableCell>
+                  <Text>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                </TableCell>
+                <TableCell>
+                  <Text>{item.signer}</Text>
+                </TableCell>
+                {canViewAmount && (
+                  <TableCell>
+                    <Text>{amountFormatter.format(0)}</Text>
+                  </TableCell>
+                )}
+                <TableCell>
+                  <Badge appearance="outline">{item.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    onClick={() => onOpen(item.id)}
+                    aria-label={`Open ${item.id}`}
+                  >
+                    Open
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {documents.length === 0 && (
+        <div className={styles.empty}>
+          <Text size={200}>No documents match the current filters.</Text>
+        </div>
+      )}
+
+      <div className={styles.footer}>
+        <Text size={200}>
+          {documents.length} {documents.length === 1 ? 'document' : 'documents'}
+        </Text>
+
+        <div className={styles.footerActions}>
+          <Text size={200} className={styles.updatedAt} aria-live="polite">
+            {isFetching
+              ? 'Updating…'
+              : dataUpdatedAt > 0
+                ? `Updated at ${new Date(dataUpdatedAt).toLocaleTimeString()}`
+                : ''}
+          </Text>
+
+          <Button
+            appearance="subtle"
+            icon={isFetching ? <Spinner size="tiny" /> : <ArrowClockwiseRegular />}
+            disabled={isFetching}
+            onClick={onRefresh}
+          >
+            Reload
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default DocumentsTable;
-
 const useStyles = makeStyles({
-  row: {
-    cursor: 'pointer',
-  }
-})
+  scroll: {
+    overflowX: 'auto',
+  },
+  table: {
+    minWidth: '760px',
+  },
+  footer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: '8px',
+  },
+  footerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  updatedAt: {
+    color: tokens.colorNeutralForeground3,
+  },
+  empty: {
+    paddingTop: '12px',
+    paddingBottom: '12px',
+    color: tokens.colorNeutralForeground3,
+  },
+});

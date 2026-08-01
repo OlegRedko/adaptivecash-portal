@@ -1,4 +1,7 @@
-/** Candidate TODO: implement the minimal portal shell/module contract described in the assignment. */
-export * from "./ErrorBoundary";
-
-export interface PortalModule { id:string; }
+export * from './config';
+export * from './module';
+export * from './ErrorBoundary';
+export * from './PortalProvider';
+export * from './RequirePermission';
+export * from './PortalShell';
+export * from './PortalApp';

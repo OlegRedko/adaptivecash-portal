@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import {
   Button,
   Card,
@@ -10,7 +11,7 @@ import {
 import { navigate, useLocation, useRoute } from '@adaptivecash/router-lite';
 import { DocumentsFilters } from './DocumentsFilters';
 import { DocumentsTable } from './DocumentsTable';
-import { DocumentDetails } from './DocumentDetails';
+import { DocumentDetails } from './DocumentDetails/DocumentDetails';
 import { useDocumentFilters } from './useDocumentFilters';
 import { useDebouncedValue } from './useDebouncedValue';
 import { useDocumentStatusesQuery, useDocumentsQuery } from './queries';
@@ -35,13 +36,15 @@ export const DocumentsPage = () => {
   const query = params.toString();
   const suffix = query ? `?${query}` : '';
 
-  const openDocument = (documentId: string) => {
-    navigate(`/documents/${encodeURIComponent(documentId)}${suffix}`);
-  };
+  const openDocument = useCallback(
+    (documentId: string) => navigate(`/documents/${encodeURIComponent(documentId)}${suffix}`),
+    [suffix],
+  );
 
-  const closeDocument = () => {
-    navigate(`/documents${suffix}`);
-  };
+  const closeDocument = useCallback(() => navigate(`/documents${suffix}`), [suffix]);
+
+  const { refetch } = documents;
+  const refresh = useCallback(() => void refetch(), [refetch]);
 
   return (
     <div className={styles.page}>
@@ -65,7 +68,7 @@ export const DocumentsPage = () => {
                   : 'The documents could not be loaded.'}
               </MessageBarBody>
               <MessageBarActions>
-                <Button onClick={() => documents.refetch()}>Retry</Button>
+                <Button onClick={refresh}>Retry</Button>
               </MessageBarActions>
             </MessageBar>
           )}
@@ -75,7 +78,7 @@ export const DocumentsPage = () => {
               documents={documents.data}
               isFetching={documents.isFetching}
               dataUpdatedAt={documents.dataUpdatedAt}
-              onRefresh={() => documents.refetch()}
+              onRefresh={refresh}
               onOpen={openDocument}
             />
           )}

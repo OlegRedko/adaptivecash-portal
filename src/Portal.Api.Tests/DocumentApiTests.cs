@@ -1,3 +1,36 @@
-using System.Net; using System.Net.Http.Json; using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net;
+using System.Net.Http.Json;
+
 namespace Portal.Api.Tests;
-public sealed class DocumentApiTests:IClassFixture<WebApplicationFactory<Program>> { private readonly HttpClient client; public DocumentApiTests(WebApplicationFactory<Program> factory){client=factory.CreateClient();client.DefaultRequestHeaders.Add("X-Tenant-Id","branch-demo");} [Fact] public async Task List_is_tenant_scoped(){var docs=await client.GetFromJsonAsync<List<DocumentDto>>("/api/documents");Assert.NotNull(docs);Assert.All(docs!,x=>Assert.StartsWith("BR-",x.Id));} [Fact] public async Task Missing_document_returns_404(){var r=await client.GetAsync("/api/documents/missing");Assert.Equal(HttpStatusCode.NotFound,r.StatusCode);} private sealed record DocumentDto(string Id,string Title,string Status); }
+
+public sealed class DocumentApiTests(PortalApiFactory app) : IClassFixture<PortalApiFactory>
+{
+    private sealed record DocumentDto(string Id, string Title, string Status);
+
+    [Fact]
+    public async Task List_is_tenant_scoped()
+    {
+        var documents = await app.CreateClientFor("branch-demo")
+            .GetFromJsonAsync<List<DocumentDto>>("/api/documents");
+
+        Assert.NotNull(documents);
+        Assert.NotEmpty(documents!);
+        Assert.All(documents!, document => Assert.StartsWith("BR-", document.Id));
+    }
+
+    [Fact]
+    public async Task Missing_document_returns_404()
+    {
+        var response = await app.CreateClientFor("branch-demo").GetAsync("/api/documents/missing");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_document_of_another_tenant_is_not_reachable()
+    {
+        var response = await app.CreateClientFor("customer-demo").GetAsync("/api/documents/BR-DOC-001");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}

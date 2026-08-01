@@ -14,8 +14,24 @@ builder.Services.AddDbContext<PortalDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("Portal") ?? "Data Source=portal-takehome.db"));
 builder.Services.AddSingleton<IFakeSignatureProvider, FakeSignatureProvider>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "AllowAll",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
+});
+
 var app = builder.Build();
+
 app.UseExceptionHandler();
+
+app.UseCors("AllowAll");
+
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 

@@ -1,3 +1,4 @@
+using Portal.Api.Application.Documents;
 using Portal.Api.Contracts;
 using Portal.Api.Domain;
 using Portal.Api.Infrastructure;
@@ -10,6 +11,7 @@ namespace Portal.Api.Application.Signing;
 /// </summary>
 public sealed class SigningSessionService(
     ISigningSessionRepository sessions,
+    IDocumentRepository documents,
     IIdempotencyStore idempotency,
     IFakeSignatureProvider provider,
     IUnitOfWork unitOfWork) : ISigningSessionService
@@ -17,7 +19,7 @@ public sealed class SigningSessionService(
     public async Task<CreateSigningSessionResult> CreateAsync(
         CreateSigningSessionCommand command, CancellationToken cancellationToken)
     {
-        if (!await sessions.DocumentExistsAsync(command.TenantId, command.DocumentId, cancellationToken))
+        if (!await documents.ExistsAsync(command.TenantId, command.DocumentId, cancellationToken))
             return CreateSigningSessionResult.Failed(CreateSigningSessionOutcome.DocumentNotFound);
 
         var attempt = await ResolveAttemptAsync(command, cancellationToken);
@@ -121,11 +123,25 @@ public sealed class SigningSessionService(
 
         sessions.Add(session);
         idempotency.MarkCompleted(record, session.Id);
+        await MarkDocumentSigningAsync(command, cancellationToken);
 
         // A rejected commit means a concurrent request already stored the same session.
         return await unitOfWork.TryCommitAsync(cancellationToken)
             ? CreateSigningSessionResult.Created(ToDto(session))
             : await ReplayAsync(command.TenantId, session.Id, cancellationToken);
+    }
+
+    /// <summary>Moves the document to Signing in the same unit of work that stores the session.</summary>
+    private async Task MarkDocumentSigningAsync(
+        CreateSigningSessionCommand command, CancellationToken cancellationToken)
+    {
+        var document = await documents.FindForUpdateAsync(
+            command.TenantId, command.DocumentId, cancellationToken);
+
+        if (document is null || document.Status == DocumentStatuses.Signing) return;
+
+        document.Status = DocumentStatuses.Signing;
+        document.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     private async Task<CreateSigningSessionResult> ReplayAsync(

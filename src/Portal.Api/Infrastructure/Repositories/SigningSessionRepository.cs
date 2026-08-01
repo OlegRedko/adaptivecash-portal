@@ -9,11 +9,6 @@ public sealed class SigningSessionRepository(PortalDbContext db) : ISigningSessi
 {
     private static readonly string[] TerminalStatuses = ["Verified", "Failed", "Expired"];
 
-    public Task<bool> DocumentExistsAsync(
-        string tenantId, string documentId, CancellationToken cancellationToken) =>
-        db.Documents.AsNoTracking()
-            .AnyAsync(x => x.TenantId == tenantId && x.Id == documentId, cancellationToken);
-
     public async Task<SigningSessionRecord?> FindActiveAsync(
         string tenantId, string documentId, CancellationToken cancellationToken)
     {
@@ -29,6 +24,11 @@ public sealed class SigningSessionRepository(PortalDbContext db) : ISigningSessi
     public Task<SigningSessionRecord?> FindByIdAsync(
         string tenantId, string sessionId, CancellationToken cancellationToken) =>
         db.SigningSessions.AsNoTracking().SingleOrDefaultAsync(
+            x => x.TenantId == tenantId && x.Id == sessionId, cancellationToken);
+
+    public Task<SigningSessionRecord?> FindForUpdateAsync(
+        string tenantId, string sessionId, CancellationToken cancellationToken) =>
+        db.SigningSessions.SingleOrDefaultAsync(
             x => x.TenantId == tenantId && x.Id == sessionId, cancellationToken);
 
     public void Add(SigningSessionRecord session) => db.SigningSessions.Add(session);

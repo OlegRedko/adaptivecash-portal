@@ -13,6 +13,8 @@ import { usePermissions } from '@adaptivecash/platform-core';
 import type { DocumentSummary } from '@adaptivecash/api-client';
 import { DOCUMENTS_SIGN } from '../permissions';
 import { SignDocumentDialog } from '../SignDocumentDialog';
+import { SigningSessionPanel } from '../SigningSessionPanel';
+import { isSignableDocumentStatus } from '../signingSessionStatus';
 import { useSignDocument } from '../useSignDocument';
 import { DocumentDetailsField } from './DocumentDetailsField';
 
@@ -27,7 +29,7 @@ export const DocumentDetailsBody = ({ document, onClose, }: Props) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const signing = useSignDocument(document.id);
-  const canSign = permissions.has(DOCUMENTS_SIGN) && document.status === 'ReadyForSignature';
+  const canSign = permissions.has(DOCUMENTS_SIGN) && isSignableDocumentStatus(document.status);
 
   const confirm = () => {
     signing.sign();
@@ -50,9 +52,10 @@ export const DocumentDetailsBody = ({ document, onClose, }: Props) => {
       </div>
 
       {signing.sessionId && (
-        <MessageBar intent="success">
-          <MessageBarBody>Signing session {signing.sessionId} is being tracked.</MessageBarBody>
-        </MessageBar>
+        <SigningSessionPanel
+          sessionId={signing.sessionId}
+          onStartNewAttempt={signing.startNewAttempt}
+        />
       )}
 
       {signing.failure && (

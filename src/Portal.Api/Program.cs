@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Portal.Api.Data;
 using Portal.Api.Endpoints;
 using Portal.Api.Infrastructure;
+using Portal.Api.Application.Signing;
+using Portal.Api.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,10 @@ builder.Services.AddScoped<TenantContext>();
 builder.Services.AddDbContext<PortalDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("Portal") ?? "Data Source=portal-takehome.db"));
 builder.Services.AddSingleton<IFakeSignatureProvider, FakeSignatureProvider>();
+builder.Services.AddScoped<ISigningSessionRepository, SigningSessionRepository>();
+builder.Services.AddScoped<IIdempotencyStore, IdempotencyStore>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ISigningSessionService, SigningSessionService>();
 
 builder.Services.AddCors(options =>
 {

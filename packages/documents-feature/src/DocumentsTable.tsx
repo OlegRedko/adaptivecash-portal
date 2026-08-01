@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   Badge,
   Button,
@@ -30,13 +31,13 @@ const amountFormatter = new Intl.NumberFormat(undefined, {
   currency: 'EUR',
 });
 
-export const DocumentsTable = ({
+export const DocumentsTable = memo(function DocumentsTable({
   documents,
   isFetching,
   dataUpdatedAt,
   onRefresh,
   onOpen,
-}: Props) => {
+}: Props) {
   const styles = useStyles();
   const permissions = usePermissions();
   const canViewAmount = permissions.has(DOCUMENTS_VIEW_AMOUNT);
@@ -127,7 +128,7 @@ export const DocumentsTable = ({
       </div>
     </div>
   );
-};
+});
 
 const useStyles = makeStyles({
   scroll: {

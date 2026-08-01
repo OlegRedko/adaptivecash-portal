@@ -1,82 +1,110 @@
-# AdaptiveCash Documents & Signing — starter repository
+# AdaptiveCash Documents & Signing
 
-This repository is deliberately incomplete: infrastructure and deterministic dependencies are provided, while the candidate owns the platform composition, Documents feature and reliable signing POST.
+A Documents & Signing vertical slice shared by two portal applications. The Documents feature
+is implemented once and composed into both portals through a module contract; the portals
+differ only in their tenant and permissions.
+
+See `DECISIONS.md` for architecture and trade-offs, `AI-NOTES.md` for AI usage, and
+`TIMELOG.md` for how the time was spent.
 
 ## Prerequisites
 
-- Node.js 22 (or a version allowed by `package.json`)
+- Node.js 20.19+ or 22.12+
 - npm 10+
 - .NET 10 SDK
 
-## Included and ready
+## Run it
 
-- React 19, TypeScript and Vite
-- two portal apps (`branch-portal`, `customer-portal`)
-- Fluent UI v9 and TanStack Query providers
-- `router-lite` based on the browser History API
-- typed `DocumentsApi` with tenant header, AbortSignal and ProblemDetails errors
-- deterministic frontend fixtures and controllable mock API
-- .NET 10 Minimal API
-- EF Core SQLite file database and seed data
-- fake signature provider with success, pre-acceptance 503 and post-acceptance 504 behavior
-- list/detail/session read endpoints
-- a compile-safe `501 Candidate TODO` POST endpoint
-- xUnit test project and candidate test skeletons
-
-## Install and run
+Three processes. The API first, since both portals proxy `/api` to it.
 
 ```bash
 npm install
-# commit the generated package-lock.json with the solution
-npm run check
-npm run api
-npm run dev:branch
-npm run dev:customer
+
+npm run api            # http://localhost:5080
+npm run dev:branch     # http://localhost:5173
+npm run dev:customer   # http://localhost:5174
 ```
 
-API: `http://localhost:5080`  
-Branch Portal: `http://localhost:5173`  
-Customer Portal: `http://localhost:5174`
+The API creates and seeds `src/Portal.Api/portal-takehome.db` on first start. To reset it,
+stop the API, delete the `portal-takehome.db*` files, and start it again.
 
-The apps proxy `/api` to the .NET API.
-
-## Tenant fixtures
-
-| App | Tenant | Permissions |
-|---|---|---|
-| Branch Portal | `branch-demo` | `Documents.View`, `Documents.Sign` |
-| Customer Portal | `customer-demo` | `Documents.View` |
-
-Every API request must carry `X-Tenant-Id`.
-
-## Candidate-owned implementation
-
-1. Implement `packages/platform-core`.
-2. Implement `packages/documents-feature` once and compose it into both apps.
-3. Replace the placeholder app screens.
-4. Complete `POST /api/documents/{documentId}/signing-sessions`.
-5. Enable and complete backend candidate tests.
-6. Add at least six required frontend behavior tests.
-7. Copy and complete the templates:
-   - `DECISIONS.template.md` → `DECISIONS.md`
-   - `AI-NOTES.template.md` → `AI-NOTES.md`
-   - `TIMELOG.template.md` → `TIMELOG.md`
-
-## Fake provider scenarios
-
-The fake provider accepts a `FakeProviderScenario` chosen by the POST implementation:
-
-- `Success`
-- `UnavailableBeforeAcceptance` — simulate `503`
-- `TimeoutAfterAcceptance` — provider accepted, response was lost; simulate `504`
-
-A practical implementation may map a test-only header such as `X-Fake-Provider-Scenario` to this enum. Do not let test-only behavior leak into production assumptions.
-
-## Required checks
+## Checks
 
 ```bash
-npm run check
+npm run check                        # typecheck, frontend tests, both production builds
 dotnet test AdaptiveCash.TakeHome.sln
 ```
 
-The starter has baseline frontend tests and two read-endpoint backend tests. The POST tests are intentionally skipped until the candidate implements that endpoint.
+Both pass: 13 frontend tests across 4 files, 9 backend tests, 0 skipped.
+
+## Fixtures
+
+No login. Each portal hardcodes its user and tenant, which is what a real identity provider
+would supply.
+
+| Portal | Tenant | Permissions |
+|---|---|---|
+| Branch (`:5173`) | `branch-demo` | `Documents.View`, `Documents.Sign`, `documents.viewAmount` |
+| Customer (`:5174`) | `customer-demo` | `Documents.View` |
+
+Seeded documents are `BR-DOC-001..003` for `branch-demo` and `CU-DOC-001..002` for
+`customer-demo`. `BR-DOC-001` starts as `ReadyForSignature`, so it is the one to sign.
+
+Every API request carries `X-Tenant-Id`. Requesting another tenant's document returns `404`.
+
+## Trying the signing flow
+
+Open `BR-DOC-001` in the Branch Portal and press **Sign document**. After confirming, the
+document moves to `Signing` and the session panel tracks the provider:
+
+`Pending` → `AwaitingProvider` (≈2s, countdown appears) → `Verified` (≈7s)
+
+Polling then stops and the list refreshes itself. The Customer Portal never shows a Sign
+action, and the Amount column only appears for a user holding `documents.viewAmount`.
+
+### Forcing the failure paths
+
+The fake provider takes a test-only header. It defaults to `Success` when absent, so
+production behaviour does not depend on it.
+
+```bash
+# 503 — provider refused before accepting; retry with the SAME key succeeds
+curl -i -X POST http://localhost:5080/api/documents/BR-DOC-001/signing-sessions \
+  -H 'X-Tenant-Id: branch-demo' -H 'Idempotency-Key: demo-1' \
+  -H 'X-Fake-Provider-Scenario: UnavailableBeforeAcceptance' \
+  -H 'Content-Type: application/json' -d '{"documentId":"BR-DOC-001"}'
+
+# 504 — provider accepted but the response was lost; retry with the SAME key reconciles
+#        onto that acceptance instead of creating a second session
+curl -i -X POST http://localhost:5080/api/documents/BR-DOC-001/signing-sessions \
+  -H 'X-Tenant-Id: branch-demo' -H 'Idempotency-Key: demo-2' \
+  -H 'X-Fake-Provider-Scenario: TimeoutAfterAcceptance' \
+  -H 'Content-Type: application/json' -d '{"documentId":"BR-DOC-001"}'
+```
+
+Repeating a POST with a *new* key while a session is live returns `409` with
+`code: ACTIVE_SESSION` and the existing session ID, which the UI attaches to rather than
+retrying.
+
+## Layout
+
+```
+apps/
+  branch-portal/          composition root: config + module list
+  customer-portal/        the same, different tenant and permissions
+packages/
+  platform-core/          shell, module contract, tenant/user/permission context, providers
+  documents-feature/      routes, pages, query and mutation hooks, signing flow
+  api-client/             typed client with tenant header, AbortSignal, ProblemDetails
+  router-lite/            History API router
+  design-tokens/          Fluent theme and CSS tokens
+  shared-ui/              shared presentational components
+  testing/                fixtures, mock API, test setup
+src/
+  Portal.Api/
+    Application/          business rules and the ports they depend on
+    Infrastructure/       adapters: repositories, fake provider, tenant context
+    Data/                 EF Core model and seed data
+    Endpoints/            HTTP mapping only
+  Portal.Api.Tests/
+```

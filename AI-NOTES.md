@@ -67,6 +67,9 @@ reads closely.
   request for a branch document returns `404`.
 - Exercised `201`, `200` replay, `409` on both codes, `503` and `504` against the running API
   with explicit requests before wiring the UI to them.
+- Exercised the `Failed` path through the UI by inserting a document whose ID ends in `FAIL`,
+  and confirmed the session reports `Failed`, polling stops, and "Start a new attempt" issues
+  a new idempotency key rather than reusing the previous one.
 - Reset and reseeded the SQLite database to confirm the flow from a clean state.
 
 ## Unverified areas
@@ -78,8 +81,6 @@ reads closely.
 - **The `Expired` path was never observed.** The fake provider issues a five-minute
   `expiresAt` and I did not wait one out or manipulate the clock, so the countdown reaching
   zero and the server reporting `Expired` is reasoned about rather than seen.
-- **The `Failed` path was only reached in a backend test**, not through the UI, because it
-  requires a document ID ending in `FAIL` and none is seeded.
 - **Concurrency was verified against SQLite only**, through six parallel requests in one
   process. The unique constraint is the real guarantee, but I have not run this against a
   second API instance or a different database engine.

@@ -6,9 +6,19 @@ import {adaptiveCashLightTheme} from '@adaptivecash/design-tokens';
 import '@adaptivecash/design-tokens/tokens.css';
 import {RouterProvider} from '@adaptivecash/router-lite';
 import {StarterNotice} from '@adaptivecash/shared-ui';
+import { DocumentsPage } from '@adaptivecash/documents-feature';
 
 const queryClient = new QueryClient({defaultOptions: {queries: {retry: false, staleTime: 30000}}});
-createRoot(document.getElementById('root')!).render(<StrictMode><QueryClientProvider
-    client={queryClient}><FluentProvider theme={adaptiveCashLightTheme}><RouterProvider><StarterNotice
-    portalName="Branch Portal" tenantId="branch-demo"
-    permissions={['Documents.View', 'Documents.Sign']}/></RouterProvider></FluentProvider></QueryClientProvider></StrictMode>);
+
+createRoot(document.getElementById('root')!)
+    .render(
+        <StrictMode>
+            <QueryClientProvider client={queryClient}>
+                <FluentProvider theme={adaptiveCashLightTheme}>
+                    <RouterProvider>
+                        <DocumentsPage />
+                    </RouterProvider>
+                </FluentProvider>
+            </QueryClientProvider>
+        </StrictMode>
+    );

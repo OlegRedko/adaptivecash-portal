@@ -1,10 +1,27 @@
+# Node
 node_modules/
 dist/
 coverage/
+*.tsbuildinfo
+.vite/
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+
+# Local database
 *.db
 *.db-shm
 *.db-wal
+
+# IDE
 .vs/
 .idea/
-*.user
-TestResults/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

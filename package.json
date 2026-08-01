@@ -3,8 +3,13 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": "^20.19.0 || >=22.12.0" },
-  "workspaces": ["apps/*", "packages/*"],
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev:branch": "npm --workspace @adaptivecash/branch-portal run dev",
     "dev:customer": "npm --workspace @adaptivecash/customer-portal run dev",
@@ -17,5 +22,14 @@
     "check": "npm run typecheck && npm run test && npm run build",
     "api": "dotnet run --project src/Portal.Api/Portal.Api.csproj",
     "dotnet:test": "dotnet test AdaptiveCash.TakeHome.sln"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^6.0.5",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

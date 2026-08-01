@@ -1,14 +1,22 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import {FluentProvider} from '@fluentui/react-components';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {adaptiveCashLightTheme} from '@adaptivecash/design-tokens';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { PortalApp, type PortalConfig } from '@adaptivecash/platform-core';
+import { createDocumentsModule } from '@adaptivecash/documents-feature';
 import '@adaptivecash/design-tokens/tokens.css';
-import {RouterProvider} from '@adaptivecash/router-lite';
-import {StarterNotice} from '@adaptivecash/shared-ui';
 
-const queryClient = new QueryClient({defaultOptions: {queries: {retry: false, staleTime: 30000}}});
-createRoot(document.getElementById('root')!).render(<StrictMode><QueryClientProvider
-    client={queryClient}><FluentProvider theme={adaptiveCashLightTheme}><RouterProvider><StarterNotice
-    portalName="Branch Portal" tenantId="branch-demo"
-    permissions={['Documents.View', 'Documents.Sign']}/></RouterProvider></FluentProvider></QueryClientProvider></StrictMode>);
+const config: PortalConfig = {
+  portalName: 'Branch Portal',
+  tenantId: 'branch-demo',
+  user: {
+    displayName: 'Olena Kovalenko',
+    permissions: ['Documents.View', 'Documents.Sign', 'documents.viewAmount'],
+  },
+};
+
+const modules = [createDocumentsModule()];
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <PortalApp config={config} modules={modules} />
+  </StrictMode>,
+);

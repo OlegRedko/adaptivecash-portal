@@ -1,0 +1,12 @@
+{
+  "name": "@adaptivecash/router-lite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@adaptivecash/design-tokens": ["packages/design-tokens/src/index.ts"],
+      "@adaptivecash/shared-ui": ["packages/shared-ui/src/index.ts"],
+      "@adaptivecash/api-client": ["packages/api-client/src/index.ts"],
+      "@adaptivecash/testing": ["packages/testing/src/index.ts"],
+      "@adaptivecash/router-lite": ["packages/router-lite/src/index.ts"],
+      "@adaptivecash/platform-core": ["packages/platform-core/src/index.ts"],
+      "@adaptivecash/documents-feature": ["packages/documents-feature/src/index.ts"]
+    },
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": ["apps", "packages", "vitest.config.ts"]
+}

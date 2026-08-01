@@ -1,0 +1,21 @@
+{
+  "name": "adaptivecash-oleh-redko-take-home",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "^20.19.0 || >=22.12.0" },
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:branch": "npm --workspace @adaptivecash/branch-portal run dev",
+    "dev:customer": "npm --workspace @adaptivecash/customer-portal run dev",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:branch": "npm --workspace @adaptivecash/branch-portal run build",
+    "build:customer": "npm --workspace @adaptivecash/customer-portal run build",
+    "build": "npm run build:branch && npm run build:customer",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "api": "dotnet run --project src/Portal.Api/Portal.Api.csproj",
+    "dotnet:test": "dotnet test AdaptiveCash.TakeHome.sln"
+  }
+}
